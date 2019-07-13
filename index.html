@@ -1,0 +1,232 @@
+﻿
+<html>
+<head>
+    <title>買い物リスト</title>
+    <meta http-equiv="content-type" charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1"><!-- スマホ用の表示拡大 -->
+    <link rel="stylesheet" type="text/css" href="css.css">
+    <script src="https://www.gstatic.com/firebasejs/5.8.6/firebase.js"></script>
+    <script>
+        // Your web app's Firebase configuration
+        var firebaseConfig = {
+            apiKey: "*************",
+            authDomain: "*************",
+            databaseURL: "*************",
+            projectId: "*************",
+            storageBucket: "",
+            messagingSenderId: "*************",
+            appId: "*************"
+        };
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        var db = firebase.database();
+        var database1 = db.ref("/data"); //欲しいものリスト
+        var databaseDone = db.ref("/done"); //入手済みリスト
+        var count = db.ref("/count"); //リストのオブジェクトのカウント
+        let subject = [];　//リストの中身をローカルの配列に追加し保持、重複確認のため
+        let itemCount1 = 0;
+        let itemCount2 = 0;
+        ListLoad(); //画面のリストをサーバーと同期
+
+        function deleteAllElement() {
+            try {
+                var element = document.getElementById("List1");
+                while (element) {
+                    subject.pop();
+                    element.removeChild(element.childNodes.item(0));
+                }
+            }
+            catch{
+                //pass
+            }
+            try {
+                var element = document.getElementById("List2");
+                while (element) {
+                    subject.pop();
+                    element.removeChild(element.childNodes.item(0));
+                }
+            }
+            catch{
+                //pass
+            }
+        }
+        
+        function addData() {
+            var message = document.getElementById("message").value;
+            var flag = "undone";
+            if (message != "") {
+                if (subject.indexOf(message) >= 0) {  //if (obj in subject)のようなメソッドが無い
+                    alert("重複しています。")
+                }
+                else {
+                    //  database1.set({ message: message }); //setで書き換え
+                    database1.push({ message: message, flag: flag }); //pushで要素を追加
+                }
+            }
+
+            else {
+                alert("入力が空白です。")
+            }
+
+            document.getElementById("message").value = "";
+
+            ListLoad();
+            updateCount();
+        };
+
+        function done() {
+
+            for (var i = 0; i < itemCount1; i++) {
+                try {
+                    // i番目のチェックボックスがチェックされているかを判定
+                    if (document.form1.elements[i].checked) {
+                        let object_done = document.form1.elements[i].value;
+
+                        database1.on("value", function (snapshot) {
+                            snapshot.forEach(function (childSnapshot) {
+
+                                var childData = childSnapshot.val().message;
+
+                                if (object_done == childData) {
+
+                                    // database1.child('-Lj9kYYd1h4t8xK1Q6HY').remove(); //IDを指定して
+                                    database1.child(childSnapshot.key).remove(); // .keyでIDを取得
+
+                                    var today = new Date();　//日付
+                                    let date = today.getMonth() + 1 + "/" + today.getDate()
+
+                                    databaseDone.push({ message: childData, flag: date }); //setで書き換え 、pushで要素を追加                                  
+                                }
+                            });
+                        });
+                    }
+                }
+                catch{
+                    //pass
+                }
+            }
+            ListLoad();
+            updateCount();
+        }
+
+        function deleteItem() {
+            for (var i = 0; i < itemCount2; i++) {
+                try {
+                    // i番目のチェックボックスがチェックされているかを判定
+                    if (document.form2.elements[i].checked) {
+                        let object_done = document.form2.elements[i].value;
+
+                        databaseDone.on("value", function (snapshot) {
+                            snapshot.forEach(function (childSnapshot) {
+
+                                var childData = childSnapshot.val().message;
+
+                                if (object_done == childData) {
+                                    databaseDone.child(childSnapshot.key).remove(); // .keyでIDを取得
+                                }
+                            });
+                        });
+                    }
+                }
+                catch{
+                    //pass
+                }
+            }
+            ListLoad();
+            updateCount();
+        }
+
+        function updateCount() {
+            // 欲しいものリスト、入手済みリストのカウントを更新
+            itemCount1 = 0;
+            itemCount2 = 0;
+
+            database1.on("value", function (snapshot) {
+                snapshot.forEach(function (childSnapshot) {
+                    itemCount1++;
+                });
+            });
+
+            databaseDone.on("value", function (snapshot) {
+                snapshot.forEach(function (childSnapshot) {
+                    itemCount2++;
+                });
+            });
+            count.set({ itemCount1: itemCount1, itemCount2: itemCount2 }); //setで書き換え 、pushで要素を追加
+        }
+
+        function ListLoad() {
+            deleteAllElement()
+
+            var list1 = document.getElementById("List1");
+
+            database1.on("value", function (snapshot) {
+                snapshot.forEach(function (childSnapshot) {
+
+                    var childData = childSnapshot.val();
+                    var element = document.createElement("li");
+
+                    subject.push(childData.message);  //リストの中身を配列に追加し保持、重複確認のため
+
+                    //チェックボックスの追加
+                    var cb = document.createElement("input");//チェックを作成
+                    cb.type = "checkbox";
+                    cb.name = "cb"
+                    cb.value = childData.message;
+                    element.innerHTML = childData.message;
+                    cb.textContent = element.innerHTML;
+                    element.appendChild(cb);
+                    list1.append(element);
+                });
+            });
+
+            var list2 = document.getElementById("List2");
+            databaseDone.on("value", function (snapshot) {
+                snapshot.forEach(function (childSnapshot) {
+
+                    var childData = childSnapshot.val();
+                    var element = document.createElement("li");
+
+                    //チェックボックスの追加
+                    var cb = document.createElement("input");//チェックを作成
+                    cb.type = "checkbox";
+                    cb.name = "cb"
+                    cb.value = childData.message; //
+                    element.innerHTML = childData.message + " " + childData.flag; //入手済みは日付を追加
+                    cb.textContent = element.innerHTML;
+                    element.appendChild(cb);
+                    list2.append(element);
+                });
+            });
+            updateCount();
+        }
+
+        window.onload = function () {
+            ListLoad();
+        };
+
+    </script>
+
+</head>
+<body>
+    <h1>買い物リスト</h1>
+    <div>
+        <p>
+            <div><input type="text" name="" id="message" placeholder="品物を入力して追加"></div>
+            <div><input type="button" value="追加" id="btnUpload" onclick="addData()"></div>
+        </p>
+        <div><input type="button" value="再読み込み" id="btnReload" onclick="ListLoad()"></div>
+    </div>
+    <h3>欲しいものリスト</h3>
+    <form name="form1">
+        <ul id="List1"></ul>
+    </form>
+    <div><input type="button" value="入手完了" id="btnDone" onclick="done()"></div>
+    <h3>入手済みリスト</h3>
+    <form name="form2">
+        <ul id="List2"></ul>
+    </form>
+    <div><input type="button" value="削除" id="btnDelete" onclick="deleteItem()"></div>
+</body>
+</html>
