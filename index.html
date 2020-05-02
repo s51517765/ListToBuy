@@ -1,9 +1,11 @@
-﻿
+﻿<!DOCTYPE html>
 <html>
+
 <head>
     <title>買い物リスト</title>
     <meta http-equiv="content-type" charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1"><!-- スマホ用の表示拡大 -->
+    <meta name="robots" content="noindex" />
     <link rel="stylesheet" type="text/css" href="css.css">
     <script src="https://www.gstatic.com/firebasejs/5.8.6/firebase.js"></script>
     <script>
@@ -27,12 +29,21 @@
         let subject = [];　//リストの中身をローカルの配列に追加し保持、重複確認のため
         let itemCount1 = 0;
         let itemCount2 = 0;
+        //ストレージのルートのリファレンスを取得
+        var storageRef = firebase.storage().ref();
+        //ストレージのルートにあるファイルのリファレンスを取得    
+        var imgSample;
+        // イメージのファイル名
+        var imgID = "";
         ListLoad(); //画面のリストをサーバーと同期
 
-        function deleteAllElement() {
-            try {
+        function deleteAllElement()
+        {
+            try
+            {
                 var element = document.getElementById("List1");
-                while (element) {
+                while (element)
+                {
                     subject.pop();
                     element.removeChild(element.childNodes.item(0));
                 }
@@ -40,9 +51,11 @@
             catch{
                 //pass
             }
-            try {
+            try
+            {
                 var element = document.getElementById("List2");
-                while (element) {
+                while (element)
+                {
                     subject.pop();
                     element.removeChild(element.childNodes.item(0));
                 }
@@ -51,52 +64,79 @@
                 //pass
             }
         }
-        
-        function addData() {
+
+        function addData()
+        {
             var message = document.getElementById("message").value;
             var flag = "undone";
-            if (message != "") {
-                if (subject.indexOf(message) >= 0) {  //if (obj in subject)のようなメソッドが無い
+
+            if (imgFile != undefined)
+            {
+                var today = new Date();　//日付
+                imgID = today.getFullYear() + "" + (today.getMonth() + 1) + "" + today.getDate() + today.getHours() + today.getMinutes() + today.getSeconds();
+                imgID += '.png';
+            } else
+            {
+                imgID = "NoImage";
+            }
+            if (message != "")
+            {
+                if (subject.indexOf(message) >= 0)
+                {  //if (obj in subject)のようなメソッドが無い
                     alert("重複しています。")
                 }
-                else {
-                    //  database1.set({ message: message }); //setで書き換え
-                    database1.push({ message: message, flag: flag }); //pushで要素を追加
+                else
+                {
+                    //  database1.set({ message: message }); //setで書き換え 、pushで要素を追加
+                    database1.push({ message: message, flag: flag, imgID: imgID }); //setで書き換え 、pushで要素を追加
                 }
-            }
 
-            else {
+                if (imgID != "NoImage") imgUpload();
+            }
+            else
+            {
                 alert("入力が空白です。")
             }
-
+            var imgPreview = document.getElementById("imgPreviewArea");
+            if (imgPreview != null)
+            {
+                //親要素内の子要素を削除
+                imgPreview.parentNode.removeChild(imgPreview);
+            }
             document.getElementById("message").value = "";
+            imgFile = undefined;
 
             ListLoad();
             updateCount();
         };
 
-        function done() {
-
-            for (var i = 0; i < itemCount1; i++) {
-                try {
+        function done()
+        {
+            for (var i = 0; i < itemCount1; i++)
+            {
+                try
+                {
                     // i番目のチェックボックスがチェックされているかを判定
-                    if (document.form1.elements[i].checked) {
+                    if (document.form1.elements[i].checked)
+                    {
                         let object_done = document.form1.elements[i].value;
 
-                        database1.on("value", function (snapshot) {
-                            snapshot.forEach(function (childSnapshot) {
-
+                        database1.on("value", function (snapshot)
+                        {
+                            snapshot.forEach(function (childSnapshot)
+                            {
                                 var childData = childSnapshot.val().message;
 
-                                if (object_done == childData) {
-
+                                if (object_done == childData)
+                                {
                                     // database1.child('-Lj9kYYd1h4t8xK1Q6HY').remove(); //IDを指定して
                                     database1.child(childSnapshot.key).remove(); // .keyでIDを取得
 
                                     var today = new Date();　//日付
                                     let date = today.getMonth() + 1 + "/" + today.getDate()
 
-                                    databaseDone.push({ message: childData, flag: date }); //setで書き換え 、pushで要素を追加                                  
+                                    databaseDone.push({ message: childData, flag: date }); //setで書き換え 、pushで要素を追加
+
                                 }
                             });
                         });
@@ -110,19 +150,25 @@
             updateCount();
         }
 
-        function deleteItem() {
-            for (var i = 0; i < itemCount2; i++) {
-                try {
+        function deleteItem()
+        {
+            for (var i = 0; i < itemCount2; i++)
+            {
+                try
+                {
                     // i番目のチェックボックスがチェックされているかを判定
-                    if (document.form2.elements[i].checked) {
+                    if (document.form2.elements[i].checked)
+                    {
                         let object_done = document.form2.elements[i].value;
 
-                        databaseDone.on("value", function (snapshot) {
-                            snapshot.forEach(function (childSnapshot) {
-
+                        databaseDone.on("value", function (snapshot)
+                        {
+                            snapshot.forEach(function (childSnapshot)
+                            {
                                 var childData = childSnapshot.val().message;
 
-                                if (object_done == childData) {
+                                if (object_done == childData)
+                                {
                                     databaseDone.child(childSnapshot.key).remove(); // .keyでIDを取得
                                 }
                             });
@@ -137,54 +183,89 @@
             updateCount();
         }
 
-        function updateCount() {
+        function updateCount()
+        {
             // 欲しいものリスト、入手済みリストのカウントを更新
             itemCount1 = 0;
             itemCount2 = 0;
 
-            database1.on("value", function (snapshot) {
-                snapshot.forEach(function (childSnapshot) {
+            database1.on("value", function (snapshot)
+            {
+                snapshot.forEach(function (childSnapshot)
+                {
                     itemCount1++;
                 });
             });
 
-            databaseDone.on("value", function (snapshot) {
-                snapshot.forEach(function (childSnapshot) {
+            databaseDone.on("value", function (snapshot)
+            {
+                snapshot.forEach(function (childSnapshot)
+                {
                     itemCount2++;
                 });
             });
             count.set({ itemCount1: itemCount1, itemCount2: itemCount2 }); //setで書き換え 、pushで要素を追加
         }
+        var imageURL;
+        function ImgURL(imgID, element, message, cb)
+        {
+            if (imgID == "NoImage") return;
 
-        function ListLoad() {
-            deleteAllElement()
+            imgSample = storageRef.child(imgID);
+            //thenで戻り値がfunctionの引数に入る
+            imgSample.getDownloadURL().then(function (url)
+            {
+                console.log(url);
+                element.innerHTML = message + " <a href =" + url + ">image</a>";
+                element.appendChild(cb);
+            });
+        }
+
+        function ListLoad()
+        {
+            deleteAllElement();
 
             var list1 = document.getElementById("List1");
+            if (list1 == null) return;
 
-            database1.on("value", function (snapshot) {
-                snapshot.forEach(function (childSnapshot) {
+            database1.on("value", function (snapshot)
+            {
+                snapshot.forEach(function (childSnapshot)
+                {
+                    try
+                    {
+                        var childData = childSnapshot.val();
+                        var element = document.createElement("li");
 
-                    var childData = childSnapshot.val();
-                    var element = document.createElement("li");
+                        subject.push(childData.message);  //リストの中身を配列に追加し保持、重複確認のため
 
-                    subject.push(childData.message);  //リストの中身を配列に追加し保持、重複確認のため
-
-                    //チェックボックスの追加
-                    var cb = document.createElement("input");//チェックを作成
-                    cb.type = "checkbox";
-                    cb.name = "cb"
-                    cb.value = childData.message;
-                    element.innerHTML = childData.message;
-                    cb.textContent = element.innerHTML;
-                    element.appendChild(cb);
-                    list1.append(element);
+                        //チェックボックスの追加
+                        var cb = document.createElement("input");//チェックを作成
+                        cb.type = "checkbox";
+                        cb.name = "cb"
+                        cb.value = childData.message;
+                        if (childData.imgID != undefined && childData.imgID != "" && childData.imgID != "NoImage")
+                        {
+                            ImgURL(childData.imgID, element, childData.message, cb);
+                        }
+                        else
+                        {
+                            element.innerHTML = childData.message;
+                            element.appendChild(cb);
+                        }
+                        list1.append(element);
+                    }
+                    catch{
+                        console.log("List1 Error.");
+                    }
                 });
             });
 
             var list2 = document.getElementById("List2");
-            databaseDone.on("value", function (snapshot) {
-                snapshot.forEach(function (childSnapshot) {
-
+            databaseDone.on("value", function (snapshot)
+            {
+                snapshot.forEach(function (childSnapshot)
+                {
                     var childData = childSnapshot.val();
                     var element = document.createElement("li");
 
@@ -194,30 +275,81 @@
                     cb.name = "cb"
                     cb.value = childData.message; //
                     element.innerHTML = childData.message + " " + childData.flag; //入手済みは日付を追加
-                    cb.textContent = element.innerHTML;
+                    //     cb.textContent = element.innerHTML;
                     element.appendChild(cb);
                     list2.append(element);
                 });
             });
             updateCount();
         }
+        function fileLoad()
+        {
+            //htmlロード完了したらストレージの画像を表示してみる
+            imgSample.getDownloadURL().then(function (url)
+            {
+                document.getElementById("imgUpload").style.backgroundImage = "url(" + url + ")";
+            }).catch(function (error)
+            {
+                // Handle any errors
+                console.log(error);
+            });
+        }
+        var imgFile;
+        function handleFileSelect(evt)
+        {
+            var element = document.createElement("div");
+            element.id = "imgPreviewArea";
+            formUpload.append(element);
 
-        window.onload = function () {
-            ListLoad();
+            //https://www.html5rocks.com/ja/tutorials/file/dndfiles/
+            imgFile = evt.target.files[0]; // File object
+
+            if (!imgFile.type.match('image.*')) return;
+            var reader = new FileReader();
+            // Closure to capture the file information.
+            reader.onload = (function (theFile)
+            {
+                return function (e)
+                {
+                    // Render thumbnail.  
+                    imgPreviewArea.innerHTML = ['<img class="thumb" src="', e.target.result, '" title="', escape(theFile.name), '"/>'].join('');
+                };
+            })(imgFile);
+
+            // Read in the image file as a data URL.
+            reader.readAsDataURL(imgFile);
+        }
+
+        //ストレージへアップロードする
+        // https://qiita.com/t_furu/items/ef99e9d48b9c3c9af7f1
+        var imgUpload = function (ev)
+        {
+            //ストレージへアップロードするファイルのパスを生成する
+            var uploadRef = storageRef.child(imgID);
+            uploadRef.put(imgFile);
         };
 
+        window.onload = function ()
+        {
+            ListLoad();
+            document.getElementById('btnFileUpload').addEventListener('change', handleFileSelect, false);
+        };
     </script>
 
 </head>
+
 <body>
     <h1>買い物リスト</h1>
     <div>
-        <p>
-            <div><input type="text" name="" id="message" placeholder="品物を入力して追加"></div>
-            <div><input type="button" value="追加" id="btnUpload" onclick="addData()"></div>
-        </p>
+        <form name="formUpload">
+            <div><input type="text" name="" id="message" placeholder="品物を入力して追加">
+                <input type="file" id="btnFileUpload" value="アップロード"></div>
+            <!--    <div id="imgPreviewArea" style="display:block;width:200px;height:200px;background-color:#ffffff;"></div>  -->
+            <p><input type="button" value="追加" id="btnAddData" onclick="addData()"></p>
+        </form>
         <div><input type="button" value="再読み込み" id="btnReload" onclick="ListLoad()"></div>
     </div>
+
     <h3>欲しいものリスト</h3>
     <form name="form1">
         <ul id="List1"></ul>
@@ -229,4 +361,5 @@
     </form>
     <div><input type="button" value="削除" id="btnDelete" onclick="deleteItem()"></div>
 </body>
+
 </html>
